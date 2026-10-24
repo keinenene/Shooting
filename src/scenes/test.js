@@ -1,5 +1,6 @@
 // M1・M2 用のテスト画面。自機の操作感と、弾パターンの確認を行う
-import { W, H, INPUT, DIFFICULTY_ORDER, COLORS } from '../config.js';
+import { W, DIFFICULTY_ORDER, COLORS } from '../config.js';
+import { controlButtons, drawButton, beginField, endField } from '../ui.js';
 import { Bomb } from '../bomb.js';
 import { BASIC_PATTERNS, STRESS_PATTERN } from '../patterns/basic.js';
 import { compilePattern, PatternRunner } from '../emitter.js';
@@ -41,24 +42,9 @@ export class TestScene {
 
   // 画面サイズが変わったらボタンを配置し直す
   layout(view) {
-    const S = INPUT.buttonSize;
-    const G = INPUT.buttonGap;
-    const bm = view.bottom - H - view.safeBottom;  // 下の余白（ホームバーを除く）
-    // 低速とボムは左手の親指で押せるよう、左下に縦に並べる（ボムが上）。
-    // 下の余白に2つ収まれば余白へ、1つなら低速だけ余白へ、足りなければゲーム領域に半透明で重ねる
-    // ボムがゲーム領域に重なるときは、誤タップしないよう間隔を広げる
-    let by, gap = INPUT.buttonGapWide;
-    if (bm >= S * 2 + G + 8) {
-      by = H + (bm - (S * 2 + G)) / 2 + S + G;
-      gap = G;
-    } else if (bm >= S + 4) by = H + (bm - S) / 2;
-    else by = H - S - 10;
-    const bx = INPUT.swapButtons ? W - 16 - S : 16;
-    const bombY = by - S - gap;
     const ty = 6, th = 28;
     this.buttons = [
-      { id: 'slow', mode: 'hold', x: bx, y: by, w: S, h: S, label: '低速' },
-      { id: 'bomb', mode: 'tap', x: bx, y: bombY, w: S, h: S, label: 'ボム' },
+      ...controlButtons(view),
       { id: 'prev', mode: 'tap', x: 4, y: ty, w: 40, h: th, label: '◀' },
       { id: 'next', mode: 'tap', x: 48, y: ty, w: 40, h: th, label: '▶' },
       { id: 'diff', mode: 'tap', x: 96, y: ty, w: 48, h: th, label: '' },
@@ -66,6 +52,7 @@ export class TestScene {
       { id: 'inv', mode: 'tap', x: 224, y: ty, w: 56, h: th, label: '無敵' },
       { id: 'reset', mode: 'tap', x: 288, y: ty, w: 68, h: th, label: 'リセット' },
     ];
+    if (this.app.toGame) this.buttons.push({ id: 'game', mode: 'tap', x: W - 76, y: 76, w: 72, h: th, label: 'ボス戦へ' });
     this.app.input.setButtons(this.buttons);
   }
 
@@ -109,6 +96,10 @@ export class TestScene {
     }
     if (input.takeTap('hitbox')) debugFlags.hitboxes = !debugFlags.hitboxes;
     if (input.takeTap('inv')) debugFlags.invincible = !debugFlags.invincible;
+    if (input.takeTap('game')) {
+      this.app.toGame();
+      return;
+    }
     if (input.takeTap('reset')) {
       this.hits = this.grazes = 0;
       player.reset();
@@ -144,17 +135,7 @@ export class TestScene {
   draw(ctx) {
     const { view, player, shots, bullets, particles, stars, fps } = this.app;
 
-    // 画面全体（余白）とゲーム領域
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = COLORS.margin;
-    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    view.apply(ctx);
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, W, H);
-    ctx.clip();
-    ctx.fillStyle = COLORS.bg;
-    ctx.fillRect(0, 0, W, H);
+    beginField(ctx, view);
     stars.draw(ctx);
 
     // 的
@@ -175,12 +156,7 @@ export class TestScene {
     bullets.draw(ctx, view);       // 弾は最前面に近い位置に描く
     if (debugFlags.hitboxes) bullets.drawHitboxes(ctx);
     player.drawHitbox(ctx, debugFlags.hitboxes);
-    ctx.restore();
-
-    // ゲーム領域の枠
-    ctx.strokeStyle = 'rgba(80, 120, 200, 0.25)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0, 0, W, H);
+    endField(ctx);
 
     this.drawHud(ctx, view, fps);
     this.drawButtons(ctx);
@@ -203,8 +179,6 @@ export class TestScene {
 
   drawButtons(ctx) {
     const { input } = this.app;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
     for (const b of this.buttons) {
       let label = b.label;
       let on = false;
@@ -212,18 +186,7 @@ export class TestScene {
       if (b.id === 'hitbox') on = debugFlags.hitboxes;
       if (b.id === 'inv') on = debugFlags.invincible;
       if (b.id === 'slow') on = input.isHeld('slow');
-      const big = b.mode === 'hold' || b.id === 'bomb';
-      ctx.fillStyle = on ? 'rgba(90, 220, 255, 0.35)' : 'rgba(40, 70, 120, 0.25)';
-      ctx.strokeStyle = on ? 'rgba(150, 240, 255, 0.9)' : COLORS.uiDim;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      if (big) ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, Math.PI * 2);
-      else ctx.roundRect(b.x, b.y, b.w, b.h, 6);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = COLORS.ui;
-      ctx.font = big ? 'bold 14px system-ui, sans-serif' : '12px system-ui, sans-serif';
-      ctx.fillText(label, b.x + b.w / 2, b.y + b.h / 2);
+      drawButton(ctx, b, { on, label });
     }
   }
 }

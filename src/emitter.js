@@ -79,6 +79,7 @@ function compileEmitter(src, diffKey) {
     offsetX: e.offset?.x ?? 0,
     offsetY: e.offset?.y ?? 0,
     radius: e.radius ?? 0,                   // 発射位置を中心からずらす距離
+    spreadX: e.spreadX ?? 0,                 // 発射位置を横にばらつかせる幅（±）
     jitter: (e.jitter ?? 0) * RAD,           // 1発ごとの角度のばらつき（±）
     speedJitter: (e.speedJitter ?? 0) * mul.speed,
     layers: e.layers ?? 1,                   // 速さ違いで重ねる段数
@@ -111,6 +112,11 @@ export class PatternRunner {
     this.rng = rng;
     this.t = 0;
     this.shots = compiled.emitters.map(() => 0);  // 各エミッターが撃った回数
+  }
+
+  reset() {
+    this.t = 0;
+    this.shots.fill(0);
   }
 
   get done() {
@@ -168,7 +174,7 @@ export class PatternRunner {
       for (let i = 0; i < n; i++) {
         const a = start + step * i + (e.jitter ? rng.range(-e.jitter, e.jitter) : 0);
         const s = speed0 + (e.speedJitter ? rng.range(-e.speedJitter, e.speedJitter) : 0);
-        const x = cx + Math.cos(a) * e.radius;
+        const x = cx + Math.cos(a) * e.radius + (e.spreadX ? rng.range(-e.spreadX, e.spreadX) : 0);
         const y = cy + Math.sin(a) * e.radius;
         bullets.spawn(x, y, s, a, spec);
       }

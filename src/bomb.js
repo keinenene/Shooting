@@ -25,6 +25,7 @@ export class Bomb {
     this.x = x;
     this.y = y;
     this.r = 0;
+    this.bossHit = false;  // ボスに波が届いたか
     // 画面の一番遠い角まで届く半径
     this.maxR = Math.hypot(Math.max(x, W - x), Math.max(y, H - y)) + 30;
   }

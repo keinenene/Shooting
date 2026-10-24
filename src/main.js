@@ -7,8 +7,9 @@ import { Player } from './player.js';
 import { Shots } from './shots.js';
 import { Bullets } from './bullets.js';
 import { Particles, Starfield } from './render.js';
-import { FpsMeter } from './debug.js';
+import { FpsMeter, debugFlags } from './debug.js';
 import { TestScene } from './scenes/test.js';
+import { GameScene } from './scenes/game.js';
 
 const canvas = document.getElementById('screen');
 const view = new View(canvas);
@@ -25,8 +26,19 @@ const app = {
   stars: new Starfield(new Rng(12345)),
   fps: new FpsMeter(),
 };
-app.scene = new TestScene(app);
-app.scene.layout(view);
+function setScene(scene) {
+  app.scene = scene;
+  app.input.reset();
+  scene.layout(view);
+}
+const game = new GameScene(app);
+app.toGame = () => {
+  game.state = 'select';
+  setScene(game);
+};
+// パターンテスト画面は ?debug=1 のときだけ開ける
+if (debugFlags.enabled) app.toTest = () => setScene(new TestScene(app));
+setScene(game);
 view.onResize((v) => app.scene.layout(v));
 
 let acc = 0;
@@ -56,6 +68,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     running = false;
     app.input.reset();
+    app.scene.onHide?.();
   } else if (!running) {
     running = true;
     acc = 0;

@@ -16,7 +16,7 @@ export const PLAYER = {
   startX: W / 2,
   startY: H - 80,
   invincibleFrames: 120, // 被弾後の無敵
-  deathbombFrames: 24,   // 喰らいボムの猶予（M3で使う）
+  deathbombFrames: 24,   // 喰らいボムの猶予
 };
 
 export const SHOT = {
@@ -53,6 +53,43 @@ export const PARTICLES = { max: 1024 };
 export const BOMB = {
   invincibleFrames: 120, // 発動中の無敵
   waveFrames: 45,        // 衝撃波が画面の端まで届くまでのフレーム数
+};
+
+// 難易度ごとの残機とボム（初期値＝上限）
+export const START = {
+  easy:   { lives: 5, bombs: 3 },
+  normal: { lives: 3, bombs: 3 },
+  hard:   { lives: 2, bombs: 2 },
+};
+
+export const MISS = {
+  hiddenFrames: 30,      // 被弾後、自機が消えている時間
+  riseFrames: 30,        // 画面下から戻ってくる時間
+  clearRadius: 80,       // 被弾した場所の周りで消す弾の範囲
+  gameOverDelay: 60,     // 最後の被弾からゲームオーバー表示までの時間
+};
+
+export const BOSS = {
+  entryFrames: 90,       // 登場
+  introFrames: 60,       // フェーズ開始の猶予（カットイン表示中）
+  transitionFrames: 75,  // フェーズ終了から次のフェーズの開始まで
+  defeatFrames: 120,     // 撃破演出
+  bombRatio: 0.4,        // ボムのダメージ（そのフェーズの割り当て分に対する割合）
+  shotRadius: 26,        // 自機ショットが当たる半径
+  warnSeconds: 10,       // 残り何秒から警告するか
+};
+
+export const SCORE = {
+  shotHit: 10,           // ボスにショットが当たるごと
+  graze: 500,
+  eraseBullet: 20,       // 削り切りで消した弾1発ごと
+  phaseBase: 100000,     // フェーズの素点（削り切りでも時間切れでも入る）
+  timeBonusPerSec: 20000,// 削り切ったときの残り1秒あたり
+  noMissBonus: 300000,   // ノーミス・ノーボムでフェーズを終えたとき
+  clearLife: 1000000,    // ステージクリア時の残機1つあたり
+  clearBomb: 300000,     // ステージクリア時のボム1つあたり
+  overflowLife: 500000,  // 上限で増えなかった残機（仮）
+  overflowBomb: 100000,  // 上限で増えなかったボム（仮）
 };
 
 // 難易度係数（弾数・弾速・発射間隔に掛ける）
