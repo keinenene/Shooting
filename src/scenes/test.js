@@ -46,12 +46,15 @@ export class TestScene {
     const bm = view.bottom - H - view.safeBottom;  // 下の余白（ホームバーを除く）
     // 低速とボムは左手の親指で押せるよう、左下に縦に並べる（ボムが上）。
     // 下の余白に2つ収まれば余白へ、1つなら低速だけ余白へ、足りなければゲーム領域に半透明で重ねる
-    let by;
-    if (bm >= S * 2 + G + 8) by = H + (bm - (S * 2 + G)) / 2 + S + G;
-    else if (bm >= S + 4) by = H + (bm - S) / 2;
+    // ボムがゲーム領域に重なるときは、誤タップしないよう間隔を広げる
+    let by, gap = INPUT.buttonGapWide;
+    if (bm >= S * 2 + G + 8) {
+      by = H + (bm - (S * 2 + G)) / 2 + S + G;
+      gap = G;
+    } else if (bm >= S + 4) by = H + (bm - S) / 2;
     else by = H - S - 10;
     const bx = INPUT.swapButtons ? W - 16 - S : 16;
-    const bombY = by - S - G;
+    const bombY = by - S - gap;
     const ty = 6, th = 28;
     this.buttons = [
       { id: 'slow', mode: 'hold', x: bx, y: by, w: S, h: S, label: '低速' },

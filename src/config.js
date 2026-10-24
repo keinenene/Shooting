@@ -39,7 +39,8 @@ export const INPUT = {
   sensitivity: 1.0,      // 移動感度（設定で0.8〜1.6）
   buttonSize: 56,        // ボタンの大きさ（論理px）
   swapButtons: false,    // ボタン配置の左右反転（true で右下に低速とボム）
-  buttonGap: 12,         // 低速ボタンとボムボタンの間隔
+  buttonGap: 12,         // 低速ボタンとボムボタンの間隔（2つとも余白に収まるとき）
+  buttonGapWide: 32,     // ボムがゲーム領域に重なるときの間隔（誤タップ防止に広げる）
 };
 
 export const BULLETS = {
