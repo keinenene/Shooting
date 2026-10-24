@@ -10,6 +10,8 @@ import { Particles, Starfield } from './render.js';
 import { FpsMeter, debugFlags } from './debug.js';
 import { TestScene } from './scenes/test.js';
 import { GameScene } from './scenes/game.js';
+import { sound } from './audio.js';
+import { save } from './storage.js';
 
 const canvas = document.getElementById('screen');
 const view = new View(canvas);
@@ -33,11 +35,14 @@ function setScene(scene) {
 }
 const game = new GameScene(app);
 app.toGame = () => {
-  game.state = 'select';
+  game.state = 'title';
   setScene(game);
 };
 // パターンテスト画面は ?debug=1 のときだけ開ける
 if (debugFlags.enabled) app.toTest = () => setScene(new TestScene(app));
+// 音は初回タップで開始する（ブラウザの制限）
+sound.setVolume(save.settings.se, save.settings.bgm);
+app.input.onFirstTouch(() => sound.init());
 setScene(game);
 view.onResize((v) => app.scene.layout(v));
 
@@ -69,10 +74,12 @@ document.addEventListener('visibilitychange', () => {
     running = false;
     app.input.reset();
     app.scene.onHide?.();
+    sound.suspend();
   } else if (!running) {
     running = true;
     acc = 0;
     last = performance.now();
+    sound.resume();
     requestAnimationFrame(tick);
   }
 });

@@ -6,7 +6,7 @@ import { compilePattern, PatternRunner } from './emitter.js';
 const TAU = Math.PI * 2;
 
 export class Boss {
-  // hooks: { onPhaseEnd(result), onDefeated() }
+  // hooks: { onPhaseEnd(result), onDefeated(retreated), onTelegraph() }
   constructor(def, diffKey, rng, hooks) {
     this.def = def;
     this.diff = diffKey;
@@ -112,7 +112,9 @@ export class Boss {
     this.hp = this.floor;
     this.runners = [];
     this.charge.state = 'none';
-    this.state = last ? 'defeat' : 'transition';
+    // 中ボスが時間切れになったときは、撃破されずに去る
+    this.retreated = last && kind === 'timeout' && !!this.def.retreat;
+    this.state = this.retreated ? 'retreat' : last ? 'defeat' : 'transition';
     this.stateT = 0;
     this.hooks.onPhaseEnd(result);
   }
@@ -146,7 +148,14 @@ export class Boss {
         this.y += this.rng.range(-1.5, 1.5);
         if (this.stateT >= BOSS.defeatFrames) {
           this.state = 'gone';
-          this.hooks.onDefeated();
+          this.hooks.onDefeated(false);
+        }
+        return;
+      case 'retreat':
+        this.y -= 3;
+        if (this.y < -60) {
+          this.state = 'gone';
+          this.hooks.onDefeated(true);
         }
         return;
       case 'gone':
@@ -191,6 +200,7 @@ export class Boss {
     if (!calm && cdef && c.state === 'none' && --c.cool <= 0) {
       c.state = 'tele';
       c.t = 0;
+      this.hooks.onTelegraph?.();
     }
     switch (c.state) {
       case 'tele':

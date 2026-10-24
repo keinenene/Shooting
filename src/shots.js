@@ -25,7 +25,8 @@ export class Shots {
   }
 
   // targets: { x, y, r, hit(damage) } の配列
-  update(player, firing, targets) {
+  // power: 攻撃力の倍率
+  update(player, firing, targets, power = 1) {
     if (firing && this.timer <= 0) {
       const gap = player.slow ? SHOT.slowSpacing : SHOT.spacing;
       const n = SHOT.lanes;
@@ -50,7 +51,7 @@ export class Shots {
         const dx = Math.abs(s.x - t.x) - half;
         const dy = Math.abs(s.y - t.y) - SHOT.length / 2;
         if ((dx < 0 ? 0 : dx) ** 2 + (dy < 0 ? 0 : dy) ** 2 < t.r * t.r) {
-          t.hit(SHOT.damage);
+          t.hit(SHOT.damage * power);
           s.alive = false;
           break;
         }

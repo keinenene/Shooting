@@ -50,6 +50,29 @@ export const BULLETS = {
 
 export const PARTICLES = { max: 1024 };
 
+export const ITEMS = {
+  max: 768,
+  launch: -2.6,          // 出現時に上へ跳ねる速さ
+  gravity: 0.07,
+  fallMax: 2.2,
+  collectRadius: 22,     // 取得できる距離
+  collectLine: H * 0.25, // 自機がこれより上に行くと全部吸い寄せる
+  slowMagnet: 64,        // 低速中に吸い寄せる距離
+  homingSpeed: 9,
+};
+
+export const POWER = {
+  maxLevel: 20,          // 攻撃力の段階（0〜20）
+  step: 0.05,            // 1段階あたりの倍率（0段階で1.0倍、20段階で2.0倍）
+  missLoss: 5,           // ミスで下がる段階
+  missDrop: 3,           // ミスでばらまく小アイテムの数
+};
+
+export const ENEMY = {
+  max: 64,
+  noFireBelow: H - 150,  // これより下では撃たない（目の前で撃たれるのを防ぐ）
+};
+
 export const BOMB = {
   invincibleFrames: 120, // 発動中の無敵
   waveFrames: 45,        // 衝撃波が画面の端まで届くまでのフレーム数
@@ -82,7 +105,8 @@ export const BOSS = {
 export const SCORE = {
   shotHit: 10,           // ボスにショットが当たるごと
   graze: 500,
-  eraseBullet: 20,       // 削り切りで消した弾1発ごと
+  pointItem: 100,        // スコア点アイテム（消した弾が変わったもの）1つ
+  powerOverflow: 1000,   // 攻撃力が最大のときの攻撃力アイテム
   phaseBase: 100000,     // フェーズの素点（削り切りでも時間切れでも入る）
   timeBonusPerSec: 20000,// 削り切ったときの残り1秒あたり
   noMissBonus: 300000,   // ノーミス・ノーボムでフェーズを終えたとき

@@ -102,3 +102,60 @@ export class Particles {
     ctx.globalAlpha = 1;
   }
 }
+
+// 背景の小惑星（手続き生成のシルエット。暗く描いて弾の見やすさを邪魔しない）
+export class Asteroids {
+  constructor(rng, n = 7) {
+    this.rng = rng;
+    this.list = [];
+    for (let i = 0; i < n; i++) {
+      const a = this.make();
+      a.y = rng.range(-40, H);
+      this.list.push(a);
+    }
+  }
+
+  make() {
+    const rng = this.rng;
+    const r = rng.range(12, 42);
+    const k = 7 + Math.floor(rng.next() * 4);
+    const pts = [];
+    for (let i = 0; i < k; i++) {
+      const a = (i / k) * TAU;
+      const d = r * rng.range(0.7, 1.1);
+      pts.push(Math.cos(a) * d, Math.sin(a) * d);
+    }
+    return {
+      x: rng.range(0, W), y: -r - 10, r, pts,
+      vy: 0.4 + (42 - r) * 0.02, rot: rng.range(0, TAU), vr: rng.range(-0.01, 0.01),
+    };
+  }
+
+  update() {
+    for (let i = 0; i < this.list.length; i++) {
+      const a = this.list[i];
+      a.y += a.vy;
+      a.rot += a.vr;
+      if (a.y > H + a.r + 10) this.list[i] = this.make();
+    }
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(30, 34, 58, 0.55)';
+    ctx.strokeStyle = 'rgba(80, 95, 140, 0.35)';
+    ctx.lineWidth = 1;
+    for (const a of this.list) {
+      ctx.save();
+      ctx.translate(a.x, a.y);
+      ctx.rotate(a.rot);
+      ctx.beginPath();
+      for (let i = 0; i < a.pts.length; i += 2) ctx.lineTo(a.pts[i], a.pts[i + 1]);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+}
