@@ -42,12 +42,16 @@ export class TestScene {
   // 画面サイズが変わったらボタンを配置し直す
   layout(view) {
     const S = INPUT.buttonSize;
-    const bm = view.bottom - H - view.safeBottom;
-    // 下の余白に収まるなら余白へ、収まらなければゲーム領域に半透明で重ねる
-    const by = bm >= S + 4 ? H + (bm - S) / 2 : H - S - 12;
-    // 低速とボムは左手の親指で押せるよう、左下に縦に並べる（ボムが上）
+    const G = INPUT.buttonGap;
+    const bm = view.bottom - H - view.safeBottom;  // 下の余白（ホームバーを除く）
+    // 低速とボムは左手の親指で押せるよう、左下に縦に並べる（ボムが上）。
+    // 下の余白に2つ収まれば余白へ、1つなら低速だけ余白へ、足りなければゲーム領域に半透明で重ねる
+    let by;
+    if (bm >= S * 2 + G + 8) by = H + (bm - (S * 2 + G)) / 2 + S + G;
+    else if (bm >= S + 4) by = H + (bm - S) / 2;
+    else by = H - S - 10;
     const bx = INPUT.swapButtons ? W - 16 - S : 16;
-    const bombY = by - S - INPUT.buttonGap;
+    const bombY = by - S - G;
     const ty = 6, th = 28;
     this.buttons = [
       { id: 'slow', mode: 'hold', x: bx, y: by, w: S, h: S, label: '低速' },

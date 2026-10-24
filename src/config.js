@@ -31,11 +31,15 @@ export const SHOT = {
   poolSize: 128,
 };
 
+export const VIEW = {
+  topShare: 0.3,         // 縦の余白のうち上に配る割合（残りは下。ボタン用）
+};
+
 export const INPUT = {
   sensitivity: 1.0,      // 移動感度（設定で0.8〜1.6）
-  buttonSize: 64,        // ボタンの大きさ（論理px）
+  buttonSize: 56,        // ボタンの大きさ（論理px）
   swapButtons: false,    // ボタン配置の左右反転（true で右下に低速とボム）
-  buttonGap: 14,         // 低速ボタンとボムボタンの間隔
+  buttonGap: 12,         // 低速ボタンとボムボタンの間隔
 };
 
 export const BULLETS = {

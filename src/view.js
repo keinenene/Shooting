@@ -1,5 +1,5 @@
 // 画面の拡大縮小。論理座標 360x640 のゲーム領域を画面中央に置き、余白は上下（または左右）にできる
-import { W, H } from './config.js';
+import { W, H, VIEW } from './config.js';
 
 export class View {
   constructor(canvas) {
@@ -25,9 +25,16 @@ export class View {
     this.canvas.width = Math.round(cssW * dpr);
     this.canvas.height = Math.round(cssH * dpr);
 
+    // セーフエリア（ノッチやホームバー）の寸法（CSS px）
+    const st = getComputedStyle(document.getElementById('safe'));
+    const safeTop = parseFloat(st.paddingTop) || 0;
+    const safeBottom = parseFloat(st.paddingBottom) || 0;
+
     this.scale = Math.min(cssW / W, cssH / H);  // 論理px → CSS px
     this.gx = (cssW - W * this.scale) / 2;        // ゲーム領域の左上（CSS px）
-    this.gy = (cssH - H * this.scale) / 2;
+    // 縦の余白は下に多く配る（下にボタンを置くため）。上はノッチにかからない分だけは空ける
+    const extra = cssH - H * this.scale;
+    this.gy = Math.min(extra, Math.max(safeTop + 4, extra * VIEW.topShare));
     this.dpr = dpr;
     // 描画用の変換（論理px → キャンバスの実ピクセル）
     this.k = dpr * this.scale;
@@ -37,13 +44,10 @@ export class View {
     // 画面全体を論理座標で表した範囲（余白を含む）
     this.left = -this.gx / this.scale;
     this.top = -this.gy / this.scale;
-    this.right = W - this.left;
-    this.bottom = H - this.top;
-
-    // セーフエリア（ノッチやホームバー）を論理pxで
-    const st = getComputedStyle(document.getElementById('safe'));
-    this.safeTop = parseFloat(st.paddingTop) / this.scale || 0;
-    this.safeBottom = parseFloat(st.paddingBottom) / this.scale || 0;
+    this.right = (cssW - this.gx) / this.scale;
+    this.bottom = (cssH - this.gy) / this.scale;
+    this.safeTop = safeTop / this.scale;
+    this.safeBottom = safeBottom / this.scale;
 
     for (const fn of this.listeners) fn(this);
   }
