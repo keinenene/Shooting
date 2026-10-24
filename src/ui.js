@@ -50,7 +50,8 @@ export function drawButton(ctx, b, { on = false, disabled = false, label = b.lab
 }
 
 // 余白を塗り、ゲーム領域を下地で塗ってクリップする。終わったら ctx.restore() を呼ぶ
-export function beginField(ctx, view) {
+// ox, oy: 画面振動のずらし量
+export function beginField(ctx, view, ox = 0, oy = 0) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = COLORS.margin;
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -61,6 +62,7 @@ export function beginField(ctx, view) {
   ctx.clip();
   ctx.fillStyle = COLORS.bg;
   ctx.fillRect(0, 0, W, H);
+  if (ox || oy) ctx.translate(ox, oy);
 }
 
 export function endField(ctx) {

@@ -33,6 +33,7 @@ export const SHOT = {
 
 export const VIEW = {
   topShare: 0.3,         // 縦の余白のうち上に配る割合（残りは下。ボタン用）
+  maxDpr: 2,             // 描画の解像度の上限（端末の倍率が3でも2倍で描いて負荷を下げる）
 };
 
 export const INPUT = {

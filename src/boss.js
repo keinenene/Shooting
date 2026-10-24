@@ -7,15 +7,17 @@ const TAU = Math.PI * 2;
 
 export class Boss {
   // hooks: { onPhaseEnd(result), onDefeated(retreated), onTelegraph() }
-  constructor(def, diffKey, rng, hooks) {
+  // startAt: 練習モードで途中のフェーズから始めるとき、その番号
+  constructor(def, diffKey, rng, hooks, startAt = 0) {
     this.def = def;
     this.diff = diffKey;
     this.rng = rng;
     this.hooks = hooks;
     this.allot = def.phaseHp;
     this.hpMax = def.phaseHp * def.phases.length;
-    this.hp = this.hpMax;
-    this.phaseIdx = 0;
+    this.startAt = startAt;
+    this.hp = this.hpMax - this.allot * startAt;
+    this.phaseIdx = startAt;
     this.state = 'entry';
     this.stateT = 0;
     this.timer = 0;           // 残り時間（フレーム）
@@ -128,10 +130,10 @@ export class Boss {
       case 'entry': {
         // 画面上から降りてくる
         const k = Math.min(1, this.stateT / BOSS.entryFrames);
-        const [hx, hy] = this.home(0);
+        const [hx, hy] = this.home(0);  // 最初のフェーズの位置へ降りてくる
         this.x = hx;
         this.y = -60 + (hy + 60) * (1 - (1 - k) ** 3);
-        if (k >= 1) this.startPhase(0);
+        if (k >= 1) this.startPhase(this.startAt);
         return;
       }
       case 'intro':

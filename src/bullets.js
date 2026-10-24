@@ -210,8 +210,9 @@ export class Bullets {
     }
   }
 
-  draw(ctx, view) {
-    const k = view.k, ox = view.ox, oy = view.oy;
+  // dx, dy: 画面振動のずらし量（論理px）
+  draw(ctx, view, dx = 0, dy = 0) {
+    const k = view.k, ox = view.ox + dx * k, oy = view.oy + dy * k;
     const { x, y, ang, spr } = this;
     for (let i = 0; i < this.n; i++) {
       const s = sprites[spr[i]];
@@ -225,6 +226,7 @@ export class Bullets {
       ctx.drawImage(s.img, -s.w / 2, -s.h / 2, s.w, s.h);
     }
     view.apply(ctx);
+    if (dx || dy) ctx.translate(dx, dy);
   }
 
   // 当たり判定円の表示（デバッグ用）

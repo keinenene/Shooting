@@ -13,6 +13,12 @@ import { sound } from '../audio.js';
 import { save, submitScore, record } from '../storage.js';
 import { debugFlags } from '../debug.js';
 import { controlButtons, drawButton, beginField, endField, hudTop, fmt, FONT } from '../ui.js';
+import {
+  practiceEntries, isUnlocked, practiceButtons, drawPractice,
+  settingsButtons, settingFromTap, toggleLabel, drawSettings,
+} from './menus.js';
+import { settings, changeSetting } from '../settings.js';
+import { keepAwake } from '../wakelock.js';
 
 const TAU = Math.PI * 2;
 const DIFF_NAME = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD' };
@@ -25,7 +31,10 @@ export class GameScene {
   constructor(app) {
     this.app = app;
     this.frame = 0;
-    this.state = 'title';       // title | select | play | paused | resume（再開前のカウント）| over | clear
+    // title | select | practice | settings | play | paused | resume（再開前のカウント）| over | clear
+    this.state = 'title';
+    this.practice = null;       // 練習中なら { segIdx, phase }
+    this.shake = 0;             // 画面振動の強さ
     this.diff = 'normal';
     this.stage = STAGE1;
     this.drag = { x: 0, y: 0 };
@@ -36,6 +45,7 @@ export class GameScene {
     this.items = new Items();
     this.asteroids = new Asteroids(new Rng(777));
     this.targets = [];
+    this.entries = practiceEntries(this.stage);
     this.enemies = new Enemies({
       onKill: (e) => this.onEnemyKill(e),
       onHit: () => sound.play('hit'),
@@ -76,9 +86,16 @@ export class GameScene {
     const cx = W / 2;
     switch (this.state) {
       case 'title':
-        if (debugFlags.enabled) list.push({ id: 'test', mode: 'tap', x: cx - 70, y: 560, w: 140, h: 34, label: 'パターンテスト' });
-        // 画面のどこをタップしても始まる
-        list.push({ id: 'start', mode: 'tap', x: v.left, y: v.top, w: v.right - v.left, h: v.bottom - v.top, hidden: false, invisible: true });
+        list.push({ id: 'start', mode: 'tap', x: cx - 100, y: 300, w: 200, h: 52, label: 'スタート' });
+        list.push({ id: 'practice', mode: 'tap', x: cx - 100, y: 366, w: 200, h: 46, label: '練習' });
+        list.push({ id: 'settings', mode: 'tap', x: cx - 100, y: 426, w: 200, h: 46, label: '設定' });
+        if (debugFlags.enabled) list.push({ id: 'test', mode: 'tap', x: cx - 70, y: 590, w: 140, h: 34, label: 'パターンテスト' });
+        break;
+      case 'practice':
+        list.push(...practiceButtons(this.stage, this.diff));
+        break;
+      case 'settings':
+        list.push(...settingsButtons());
         break;
       case 'select':
         DIFFICULTY_ORDER.forEach((d, i) => {
@@ -103,12 +120,12 @@ export class GameScene {
       case 'paused':
         list.push({ id: 'resume', mode: 'tap', x: cx - 100, y: 260, w: 200, h: 52, label: '再開' });
         list.push({ id: 'retry', mode: 'tap', x: cx - 100, y: 330, w: 200, h: 52, label: 'やり直す' });
-        list.push({ id: 'title', mode: 'tap', x: cx - 100, y: 400, w: 200, h: 52, label: 'タイトルへ' });
+        list.push({ id: 'title', mode: 'tap', x: cx - 100, y: 400, w: 200, h: 52, label: this.practice ? '練習メニューへ' : 'タイトルへ' });
         break;
       case 'over':
       case 'clear':
         list.push({ id: 'retry', mode: 'tap', x: cx - 100, y: 490, w: 200, h: 48, label: 'もう一度' });
-        list.push({ id: 'title', mode: 'tap', x: cx - 100, y: 550, w: 200, h: 48, label: 'タイトルへ' });
+        list.push({ id: 'title', mode: 'tap', x: cx - 100, y: 550, w: 200, h: 48, label: this.practice ? '練習メニューへ' : 'タイトルへ' });
         break;
     }
     this.buttons = list;
@@ -118,7 +135,15 @@ export class GameScene {
   setState(s) {
     this.state = s;
     this.setButtons();
-    if (s === 'title' || s === 'select') sound.stopMusic();
+    const menu = s === 'title' || s === 'select' || s === 'practice' || s === 'settings';
+    if (menu) sound.stopMusic();
+    // プレイ中は画面を自動で暗くしない
+    keepAwake(!menu);
+  }
+
+  // ポーズや結果から抜けるとき：練習中なら練習メニューへ
+  leave() {
+    this.setState(this.practice ? 'practice' : 'title');
   }
 
   // 画面が裏に回ったら自動でポーズ
@@ -128,8 +153,10 @@ export class GameScene {
 
   // ---- 進行 ----
 
-  start() {
+  // prac: 練習モードなら { segIdx, phase }（phase はボスのフェーズ番号。区間全体なら undefined）
+  start(prac = null) {
     const { player, shots, bullets, particles } = this.app;
+    this.practice = prac;
     player.reset();
     shots.clear();
     bullets.clear();
@@ -142,7 +169,10 @@ export class GameScene {
     this.maxBombs = st.bombs;
     this.lives = st.lives;
     this.bombs = st.bombs;
-    this.power = 0;            // 攻撃力の段階（0〜POWER.maxLevel）
+    // 攻撃力の段階（0〜POWER.maxLevel）。練習モードでは2つ目の区間以降を最大から始める
+    this.power = prac && prac.segIdx > 0 ? POWER.maxLevel : 0;
+    this.practiceEndT = 0;
+    this.shake = 0;
     this.score = 0;
     this.graze = 0;
     this.pending = 0;          // 喰らいボムの猶予の残り
@@ -156,8 +186,8 @@ export class GameScene {
     this.banner = null;
     this.result = null;
     this.boss = null;
-    this.playT = 0;
-    this.segIdx = -1;
+    this.playT = prac ? STAGE_INTRO : 0;   // 練習ではステージ名を出さない
+    this.segIdx = prac ? prac.segIdx - 1 : -1;
     this.setState('play');
     this.nextSegment();
   }
@@ -165,6 +195,11 @@ export class GameScene {
   // 次の区間（道中・中ボス・ボス）へ
   nextSegment() {
     this.segIdx++;
+    // 練習：選んだ区間が終わったら終了
+    if (this.practice && this.segIdx > this.practice.segIdx) {
+      this.finishPractice(true);
+      return;
+    }
     const seg = this.stage.segments[this.segIdx];
     this.seg = seg;
     this.segT = 0;
@@ -187,7 +222,7 @@ export class GameScene {
         onPhaseEnd: (r) => this.onPhaseEnd(r),
         onDefeated: (retreated) => this.onBossGone(retreated),
         onTelegraph: () => sound.play('charge'),
-      });
+      }, this.practice?.phase ?? 0);
       this.lastBossState = '';
     }
   }
@@ -212,14 +247,26 @@ export class GameScene {
         if (input.takeTap('start')) {
           sound.play('select');
           this.setState('select');
+        } else if (input.takeTap('practice')) {
+          sound.play('select');
+          this.setState('practice');
+        } else if (input.takeTap('settings')) {
+          sound.play('select');
+          this.setState('settings');
         }
+        break;
+      case 'practice':
+        this.updatePracticeMenu();
+        break;
+      case 'settings':
+        this.updateSettings();
         break;
       case 'select':
         for (const d of DIFFICULTY_ORDER) {
           if (input.takeTap(d)) {
             sound.play('select');
             this.diff = d;
-            this.start();
+            this.start(null);
             return;
           }
         }
@@ -232,8 +279,8 @@ export class GameScene {
           sound.play('warn');
           this.setState('resume');
         }
-        else if (input.takeTap('retry')) this.start();
-        else if (input.takeTap('title')) this.setState('title');
+        else if (input.takeTap('retry')) this.start(this.practice);
+        else if (input.takeTap('title')) this.leave();
         input.takeDrag(this.drag);  // ポーズ中のドラッグは捨てる
         break;
       case 'resume':
@@ -244,12 +291,44 @@ export class GameScene {
         break;
       case 'over':
       case 'clear':
-        if (input.takeTap('retry')) this.start();
-        else if (input.takeTap('title')) this.setState('title');
+        if (input.takeTap('retry')) this.start(this.practice);
+        else if (input.takeTap('title')) this.leave();
         break;
       case 'play':
         this.updatePlay();
         break;
+    }
+  }
+
+  updatePracticeMenu() {
+    const { input } = this.app;
+    for (const d of DIFFICULTY_ORDER) {
+      if (input.takeTap('pd-' + d)) {
+        this.diff = d;
+        sound.play('select');
+      }
+    }
+    this.entries.forEach((e, i) => {
+      if (input.takeTap('pr-' + i) && isUnlocked(this.diff, e, i)) {
+        sound.play('select');
+        this.start({ segIdx: e.segIdx, phase: e.phase });
+      }
+    });
+    if (input.takeTap('back')) this.setState('title');
+  }
+
+  updateSettings() {
+    const { input } = this.app;
+    for (const b of this.buttons) {
+      if (!b.id.startsWith('set-') || !input.takeTap(b.id)) continue;
+      const ch = settingFromTap(b.id, settings());
+      if (!ch) continue;
+      changeSetting(ch[0], ch[1]);
+      sound.play('select');
+    }
+    if (input.takeTap('back')) {
+      // ボタン配置が変わったかもしれないので、戻るときに配置し直す
+      this.setState('title');
     }
   }
 
@@ -265,6 +344,12 @@ export class GameScene {
     if (input.takeTap('skip')) this.debugSkip();
     if (input.takeTap('inv')) debugFlags.invincible = !debugFlags.invincible;
     if (input.takeTap('bomb')) this.tryBomb();
+    if (this.shake > 0) this.shake *= 0.85;
+    // 練習：選んだフェーズが終わったら、表示を少し見せてから終了
+    if (this.practiceEndT > 0 && --this.practiceEndT === 0) {
+      this.finishPractice(true);
+      return;
+    }
 
     // 自機
     const drag = input.takeDrag(this.drag);
@@ -454,6 +539,7 @@ export class GameScene {
     }
     this.bomb.start(player.x, player.y);
     sound.play('bomb');
+    this.shake = 6;
   }
 
   die() {
@@ -461,6 +547,7 @@ export class GameScene {
     this.lives--;
     this.phaseMiss = true;
     sound.play('miss');
+    this.shake = 8;
     particles.burst(rng, player.x, player.y, 40, 5, 40, '#f8a');
     particles.burst(rng, player.x, player.y, 20, 2.5, 30, '#fff');
     bullets.clearCircle(player.x, player.y, MISS.clearRadius,
@@ -524,10 +611,12 @@ export class GameScene {
     };
     sound.play('phase');
     this.phaseMiss = this.phaseBomb = false;
+    if (this.practice?.phase !== undefined) this.practiceEndT = 100;
     if (r.last && !b.retreated) {
       particles.burst(rng, b.x, b.y, 80, 7, 60, '#f8c');
       particles.burst(rng, b.x, b.y, 60, 4, 50, '#fff');
       sound.play('bigkill');
+      this.shake = 10;
       // 中ボスを倒したら、ボムなどを落とす
       for (const d of b.def.drops || []) this.items.spawn(ITEM_OF[d], b.x, b.y, rng);
     }
@@ -537,11 +626,23 @@ export class GameScene {
   onBossGone(retreated) {
     if (!retreated) record(this.diff, this.seg.id, true);
     this.boss = null;
-    if (this.seg.midboss) this.nextSegment();
+    if (this.seg.midboss || this.practice) this.nextSegment();
     else this.finish('clear');
   }
 
+  // 練習の終了（記録はするが、ハイスコアには反映しない）
+  finishPractice(ok) {
+    if (this.state !== 'play') return;
+    this.result = { kind: ok ? 'clear' : 'over', lines: [], practice: true };
+    sound.stopMusic();
+    this.setState(ok ? 'clear' : 'over');
+  }
+
   finish(kind) {
+    if (this.practice) {
+      this.finishPractice(kind === 'clear');
+      return;
+    }
     const res = { kind, lines: [] };
     if (kind === 'clear') {
       // ボス突破で残機+1（上限を超える分はスコアに）
@@ -571,11 +672,14 @@ export class GameScene {
 
   draw(ctx) {
     const { view, player, shots, bullets, particles, stars } = this.app;
-    beginField(ctx, view);
+    // 画面振動（設定でオフにできる）
+    const sh = settings().shake && this.shake > 0.3 ? this.shake : 0;
+    const sx = Math.sin(this.frame * 1.7) * sh, sy = Math.cos(this.frame * 2.3) * sh;
+    beginField(ctx, view, sx, sy);
     stars.draw(ctx);
     this.asteroids.draw(ctx);
 
-    const inGame = this.state !== 'title' && this.state !== 'select';
+    const inGame = !['title', 'select', 'practice', 'settings'].includes(this.state);
     if (inGame) {
       this.boss?.draw(ctx);
       this.enemies.draw(ctx);
@@ -585,9 +689,9 @@ export class GameScene {
       if (visible) player.draw(ctx, this.frame);
       particles.draw(ctx);
       this.bomb.draw(ctx);
-      bullets.draw(ctx, view);
+      bullets.draw(ctx, view, sx, sy);
       if (debugFlags.hitboxes) bullets.drawHitboxes(ctx);
-      if (visible) player.drawHitbox(ctx, debugFlags.hitboxes || this.pending > 0);
+      if (visible) player.drawHitbox(ctx, debugFlags.hitboxes || settings().showHitbox || this.pending > 0);
       if (this.pending > 0) this.drawDeathbomb(ctx);
       this.drawPopups(ctx);
       if (this.boss) this.drawCutin(ctx);
@@ -605,6 +709,8 @@ export class GameScene {
 
     if (this.state === 'title') this.drawTitle(ctx);
     else if (this.state === 'select') this.drawSelect(ctx);
+    else if (this.state === 'practice') drawPractice(ctx, this.stage, this.diff);
+    else if (this.state === 'settings') drawSettings(ctx, settings());
     else this.drawHud(ctx);
     if (this.state === 'paused') this.drawOverlay(ctx, 'PAUSE');
     if (this.state === 'resume') this.drawCountdown(ctx);
@@ -622,6 +728,13 @@ export class GameScene {
       }
       if (b.id === 'inv') opt.on = debugFlags.invincible;
       if (DIFFICULTY_ORDER.includes(b.id)) opt.size = 16;
+      if (b.id.startsWith('pd-')) opt.on = b.id === 'pd-' + this.diff;
+      if (b.id.startsWith('pr-')) opt.disabled = !isUnlocked(this.diff, this.entries[+b.id.slice(3)], +b.id.slice(3));
+      if (b.id.startsWith('set-')) {
+        const t = toggleLabel(b.id, settings());
+        if (t !== null) opt.label = t;
+        opt.size = 14;
+      }
       drawButton(ctx, b, opt);
     }
   }
@@ -847,18 +960,12 @@ export class GameScene {
     ctx.fillStyle = '#dff';
     ctx.shadowColor = '#4df';
     ctx.shadowBlur = 20;
-    ctx.fillText('STARFALL', W / 2, 220);
+    ctx.fillText('STARFALL', W / 2, 190);
     ctx.shadowBlur = 0;
-    // ゆっくり明滅（点滅はしない）
-    ctx.globalAlpha = 0.55 + 0.35 * Math.sin(this.frame * 0.05);
-    ctx.font = `15px ${FONT}`;
-    ctx.fillStyle = COLORS.ui;
-    ctx.fillText('タップしてスタート', W / 2, 380);
-    ctx.globalAlpha = 1;
     ctx.font = `11px ${FONT}`;
     ctx.fillStyle = COLORS.uiDim;
     DIFFICULTY_ORDER.forEach((d, i) => {
-      ctx.fillText(`${DIFF_NAME[d]}  HI ${fmt(save.hi[d])}`, W / 2, 440 + i * 18);
+      ctx.fillText(`${DIFF_NAME[d]}  HI ${fmt(save.hi[d])}`, W / 2, 508 + i * 18);
     });
     ctx.restore();
   }
@@ -881,7 +988,8 @@ export class GameScene {
 
   drawResult(ctx) {
     const r = this.result;
-    this.drawOverlay(ctx, r.kind === 'clear' ? 'STAGE CLEAR' : 'GAME OVER');
+    if (r.practice) this.drawOverlay(ctx, r.kind === 'clear' ? 'PRACTICE CLEAR' : 'PRACTICE FAILED');
+    else this.drawOverlay(ctx, r.kind === 'clear' ? 'STAGE CLEAR' : 'GAME OVER');
     ctx.save();
     ctx.textBaseline = 'middle';
     ctx.font = `12px ${FONT}`;

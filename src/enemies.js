@@ -7,7 +7,7 @@ const RAD = Math.PI / 180;
 
 // 敵の種類。drop: 倒したときに落とすもの（chance は確率）
 export const ENEMY_TYPES = {
-  drone:   { hp: 20,   r: 10, score: 1000,  color: '#f6a', shape: 'dart', drop: { powS: 0.3 } },
+  drone:   { hp: 20,   r: 10, score: 1000,  color: '#f6a', shape: 'dart', drop: { powS: 0.2 } },
   fighter: { hp: 120,  r: 13, score: 3000,  color: '#fa4', shape: 'wing', drop: { powS: 1 } },
   carrier: { hp: 1000, r: 22, score: 20000, color: '#6f8', shape: 'hex',  drop: { powL: 2 }, big: true },
 };

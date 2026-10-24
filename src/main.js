@@ -11,7 +11,7 @@ import { FpsMeter, debugFlags } from './debug.js';
 import { TestScene } from './scenes/test.js';
 import { GameScene } from './scenes/game.js';
 import { sound } from './audio.js';
-import { save } from './storage.js';
+import { applySettings } from './settings.js';
 
 const canvas = document.getElementById('screen');
 const view = new View(canvas);
@@ -41,7 +41,7 @@ app.toGame = () => {
 // パターンテスト画面は ?debug=1 のときだけ開ける
 if (debugFlags.enabled) app.toTest = () => setScene(new TestScene(app));
 // 音は初回タップで開始する（ブラウザの制限）
-sound.setVolume(save.settings.se, save.settings.bgm);
+applySettings();
 app.input.onFirstTouch(() => sound.init());
 setScene(game);
 view.onResize((v) => app.scene.layout(v));
@@ -85,6 +85,11 @@ document.addEventListener('visibilitychange', () => {
 });
 
 requestAnimationFrame(tick);
+
+// オフラインでも起動できるよう Service Worker を登録する（PWA）
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
 
 // デバッグ・自動テスト用
 window.__app = app;

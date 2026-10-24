@@ -19,7 +19,7 @@ export class View {
   resize() {
     const cssW = window.innerWidth;
     const cssH = window.innerHeight;
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const dpr = Math.min(window.devicePixelRatio || 1, VIEW.maxDpr);
     this.canvas.style.width = cssW + 'px';
     this.canvas.style.height = cssH + 'px';
     this.canvas.width = Math.round(cssW * dpr);

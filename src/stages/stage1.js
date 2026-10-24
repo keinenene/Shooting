@@ -88,7 +88,7 @@ const ROAD2 = [
 // 中ボス：1フェーズ。時間切れなら撃破されずに去る
 export const MIDBOSS1 = {
   name: '哨戒機 ストライダー',
-  phaseHp: 3500,
+  phaseHp: 4000,
   retreat: true,               // 時間切れで画面上へ去る
   drops: ['bomb', 'powL', 'powL'],
   phases: [
@@ -125,7 +125,7 @@ export const MIDBOSS1 = {
 
 export const BOSS1 = {
   name: '監視衛星 オクルス',
-  phaseHp: 8000,             // 1フェーズで削れる量（体力の合計はこれ×フェーズ数）
+  phaseHp: 10000,            // 1フェーズで削れる量（体力の合計はこれ×フェーズ数）
   phases: [
     {
       name: '軌道封鎖「リングバリア」',
