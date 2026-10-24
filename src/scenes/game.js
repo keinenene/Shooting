@@ -19,12 +19,13 @@ const DIFF_NAME = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD' };
 const KIND_LABEL = { kill: '撃破', timeout: '時間切れ', endure: '耐え切り' };
 const ITEM_OF = { powS: IT_POW_S, powL: IT_POW_L, bomb: IT_BOMB };
 const STAGE_INTRO = 150;   // ステージ名を表示するフレーム数
+const RESUME_COUNT = 3;    // ポーズから再開するまでのカウント（秒）
 
 export class GameScene {
   constructor(app) {
     this.app = app;
     this.frame = 0;
-    this.state = 'title';       // title | select | play | paused | over | clear
+    this.state = 'title';       // title | select | play | paused | resume（再開前のカウント）| over | clear
     this.diff = 'normal';
     this.stage = STAGE1;
     this.drag = { x: 0, y: 0 };
@@ -95,6 +96,10 @@ export class GameScene {
         }
         break;
       }
+      case 'resume':
+        // カウント中も低速・ボムのボタンは表示し、指を置いておけるようにする
+        list.push(...controlButtons(v));
+        break;
       case 'paused':
         list.push({ id: 'resume', mode: 'tap', x: cx - 100, y: 260, w: 200, h: 52, label: '再開' });
         list.push({ id: 'retry', mode: 'tap', x: cx - 100, y: 330, w: 200, h: 52, label: 'やり直す' });
@@ -118,7 +123,7 @@ export class GameScene {
 
   // 画面が裏に回ったら自動でポーズ
   onHide() {
-    if (this.state === 'play') this.setState('paused');
+    if (this.state === 'play' || this.state === 'resume') this.setState('paused');
   }
 
   // ---- 進行 ----
@@ -221,10 +226,21 @@ export class GameScene {
         if (input.takeTap('back')) this.setState('title');
         break;
       case 'paused':
-        if (input.takeTap('resume')) this.setState('play');
+        if (input.takeTap('resume')) {
+          // すぐには再開せず、カウントダウンしてから
+          this.resumeT = RESUME_COUNT * 60;
+          sound.play('warn');
+          this.setState('resume');
+        }
         else if (input.takeTap('retry')) this.start();
         else if (input.takeTap('title')) this.setState('title');
         input.takeDrag(this.drag);  // ポーズ中のドラッグは捨てる
+        break;
+      case 'resume':
+        input.takeDrag(this.drag);  // カウント中に指を置き直しても自機は動かさない
+        input.takeTap('bomb');      // カウント中のボムは発動しない
+        if (--this.resumeT <= 0) this.setState('play');
+        else if (this.resumeT % 60 === 0) sound.play('warn');
         break;
       case 'over':
       case 'clear':
@@ -559,7 +575,7 @@ export class GameScene {
     stars.draw(ctx);
     this.asteroids.draw(ctx);
 
-    const inGame = this.state === 'play' || this.state === 'paused' || this.state === 'over' || this.state === 'clear';
+    const inGame = this.state !== 'title' && this.state !== 'select';
     if (inGame) {
       this.boss?.draw(ctx);
       this.enemies.draw(ctx);
@@ -591,6 +607,7 @@ export class GameScene {
     else if (this.state === 'select') this.drawSelect(ctx);
     else this.drawHud(ctx);
     if (this.state === 'paused') this.drawOverlay(ctx, 'PAUSE');
+    if (this.state === 'resume') this.drawCountdown(ctx);
     if (this.state === 'over' || this.state === 'clear') this.drawResult(ctx);
 
     const { input } = this.app;
@@ -802,6 +819,24 @@ export class GameScene {
     ctx.font = `bold 26px ${FONT}`;
     ctx.fillStyle = '#fff';
     ctx.fillText(title, W / 2, 190);
+  }
+
+  // 再開前のカウントダウン（3, 2, 1）
+  drawCountdown(ctx) {
+    const n = Math.ceil(this.resumeT / 60);
+    const k = (this.resumeT % 60) / 60;   // 1 → 0 で各数字が縮む
+    ctx.fillStyle = 'rgba(2, 4, 12, 0.35)';
+    ctx.fillRect(this.view.left, this.view.top, this.view.right - this.view.left, this.view.bottom - this.view.top);
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.globalAlpha = 0.5 + 0.5 * k;
+    ctx.font = `bold ${48 + 24 * k}px ${FONT}`;
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = '#4df';
+    ctx.shadowBlur = 16;
+    ctx.fillText(String(n), W / 2, 300);
+    ctx.restore();
   }
 
   drawTitle(ctx) {
