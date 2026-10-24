@@ -34,7 +34,8 @@ export const SHOT = {
 export const INPUT = {
   sensitivity: 1.0,      // 移動感度（設定で0.8〜1.6）
   buttonSize: 64,        // ボタンの大きさ（論理px）
-  swapButtons: false,    // ボタン配置の左右反転
+  swapButtons: false,    // ボタン配置の左右反転（true で右下に低速とボム）
+  buttonGap: 14,         // 低速ボタンとボムボタンの間隔
 };
 
 export const BULLETS = {
@@ -42,7 +43,12 @@ export const BULLETS = {
   offscreenMargin: 24,   // 画面外に出てから消すまでの余白
 };
 
-export const PARTICLES = { max: 512 };
+export const PARTICLES = { max: 1024 };
+
+export const BOMB = {
+  invincibleFrames: 120, // 発動中の無敵
+  waveFrames: 45,        // 衝撃波が画面の端まで届くまでのフレーム数
+};
 
 // 難易度係数（弾数・弾速・発射間隔に掛ける）
 export const DIFFICULTY = {

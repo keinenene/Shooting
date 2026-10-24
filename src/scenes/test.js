@@ -1,5 +1,6 @@
 // M1・M2 用のテスト画面。自機の操作感と、弾パターンの確認を行う
 import { W, H, INPUT, DIFFICULTY_ORDER, COLORS } from '../config.js';
+import { Bomb } from '../bomb.js';
 import { BASIC_PATTERNS, STRESS_PATTERN } from '../patterns/basic.js';
 import { compilePattern, PatternRunner } from '../emitter.js';
 import { debugFlags } from '../debug.js';
@@ -16,6 +17,7 @@ export class TestScene {
     this.hits = 0;
     this.grazes = 0;
     this.drag = { x: 0, y: 0 };
+    this.bomb = new Bomb();
     // 弾を撃つ的（ショットの当たりも確かめられる）
     this.target = {
       x: W / 2, y: 140, r: 18, dead: false, flash: 0, dmg: 0, dps: 0, dmgWindow: 0,
@@ -43,12 +45,13 @@ export class TestScene {
     const bm = view.bottom - H - view.safeBottom;
     // 下の余白に収まるなら余白へ、収まらなければゲーム領域に半透明で重ねる
     const by = bm >= S + 4 ? H + (bm - S) / 2 : H - S - 12;
-    const lx = 16, rx = W - 16 - S;
-    const [slowX, bombX] = INPUT.swapButtons ? [rx, lx] : [lx, rx];
+    // 低速とボムは左手の親指で押せるよう、左下に縦に並べる（ボムが上）
+    const bx = INPUT.swapButtons ? W - 16 - S : 16;
+    const bombY = by - S - INPUT.buttonGap;
     const ty = 6, th = 28;
     this.buttons = [
-      { id: 'slow', mode: 'hold', x: slowX, y: by, w: S, h: S, label: '低速' },
-      { id: 'bomb', mode: 'tap', x: bombX, y: by, w: S, h: S, label: 'ボム' },
+      { id: 'slow', mode: 'hold', x: bx, y: by, w: S, h: S, label: '低速' },
+      { id: 'bomb', mode: 'tap', x: bx, y: bombY, w: S, h: S, label: 'ボム' },
       { id: 'prev', mode: 'tap', x: 4, y: ty, w: 40, h: th, label: '◀' },
       { id: 'next', mode: 'tap', x: 48, y: ty, w: 40, h: th, label: '▶' },
       { id: 'diff', mode: 'tap', x: 96, y: ty, w: 48, h: th, label: '' },
@@ -104,10 +107,13 @@ export class TestScene {
       player.reset();
       this.startPattern();
     }
-    // M2 ではボムの代わりに画面の弾を消すだけ
-    if (input.takeTap('bomb')) {
-      bullets.clearCircle(W / 2, H / 2, 1000, (bx, by) => particles.spawn(bx, by, 0, -1, 20, '#9ff'));
-    }
+    // ボム（敵への効果と残数はM3で入れる）
+    if (input.takeTap('bomb') && !this.bomb.active) this.bomb.start(player.x, player.y);
+    this.bomb.update(bullets, (bx, by, a) => {
+      // 消えた弾は、波に押し出されるように外へ散る光になる
+      const s = 1.5 + this.app.rng.next() * 1.5;
+      particles.spawn(bx, by, Math.cos(a) * s, Math.sin(a) * s, 22, '#bff');
+    });
 
     player.update(input.takeDrag(this.drag), input.isHeld('slow'));
 
@@ -122,7 +128,7 @@ export class TestScene {
     }
 
     this.runner.update(bullets, player, t.x, t.y);
-    this.world.canHit = player.invincible === 0 && !debugFlags.invincible;
+    this.world.canHit = player.invincible === 0 && !this.bomb.protecting && !debugFlags.invincible;
     bullets.update(this.world);
     particles.update();
     stars.update();
@@ -158,6 +164,7 @@ export class TestScene {
     shots.draw(ctx);
     player.draw(ctx, this.frame);
     particles.draw(ctx);
+    this.bomb.draw(ctx);
     bullets.draw(ctx, view);       // 弾は最前面に近い位置に描く
     if (debugFlags.hitboxes) bullets.drawHitboxes(ctx);
     player.drawHitbox(ctx, debugFlags.hitboxes);
