@@ -140,7 +140,7 @@ export const BASIC_PATTERNS = [
 export const STRESS_PATTERN = {
   id: 'stress', name: '負荷テスト（約1000発）',
   emitters: [{
-    interval: 6, count: 16, spread: 360,
+    interval: 6, count: 13, spread: 360,
     baseAngle: { type: 'rotate', start: 0, speed: 4 },
     bullet: { type: 'small', color: '#9cf', speed: 1.0 },
   }, {

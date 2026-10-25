@@ -5,12 +5,10 @@ export const H = 640;   // 論理解像度（縦）
 export const DT = 1 / 60;
 export const MAX_STEPS = 5;        // 1回の描画までに進める更新の最大回数
 
+// 機体ごとの値（速さ・判定・ショット・攻撃力の伸び方）は ships.js にある
 export const PLAYER = {
-  speed: 4.0,            // 通常速度（px/F）
-  slowSpeed: 1.8,        // 低速時の速度（px/F）
   dragMaxStep: 12,       // 相対ドラッグで1フレームに動ける最大距離（通常時）
   dragBuffer: 48,        // 持ち越せるドラッグ量の上限
-  hitRadius: 2.5,
   grazeRadius: 12,
   margin: 6,             // 画面端からの余白
   startX: W / 2,
@@ -20,14 +18,6 @@ export const PLAYER = {
 };
 
 export const SHOT = {
-  interval: 4,           // 何フレームごとに撃つか
-  speed: 14,
-  lanes: 5,              // 直線の本数
-  spacing: 14,           // 通常時の間隔
-  slowSpacing: 5,        // 低速時の間隔
-  damage: 10,
-  width: 3,
-  length: 18,
   poolSize: 128,
 };
 
@@ -62,9 +52,8 @@ export const ITEMS = {
   homingSpeed: 9,
 };
 
+// 攻撃力の段階と倍率は機体ごと（ships.js）
 export const POWER = {
-  maxLevel: 20,          // 攻撃力の段階（0〜20）
-  step: 0.05,            // 1段階あたりの倍率（0段階で1.0倍、20段階で2.0倍）
   missLoss: 5,           // ミスで下がる段階
   missDrop: 3,           // ミスでばらまく小アイテムの数
 };
@@ -98,8 +87,9 @@ export const BOSS = {
   introFrames: 60,       // フェーズ開始の猶予（カットイン表示中）
   transitionFrames: 75,  // フェーズ終了から次のフェーズの開始まで
   defeatFrames: 120,     // 撃破演出
-  bombRatio: 0.4,        // ボムのダメージ（そのフェーズの割り当て分に対する割合）
+  bombRatio: 0.1,        // ボムのダメージ（そのフェーズの割り当て分に対する割合）
   shotRadius: 26,        // 自機ショットが当たる半径
+  follow: 0.03,          // 移動の目標へ寄せる速さ（1フレームあたりの割合）
   warnSeconds: 10,       // 残り何秒から警告するか
 };
 
@@ -116,6 +106,9 @@ export const SCORE = {
   overflowLife: 500000,  // 上限で増えなかった残機（仮）
   overflowBomb: 100000,  // 上限で増えなかったボム（仮）
 };
+
+// 敵弾の速さ全体に掛ける係数（難易度係数とは別。全体の速さの調整用）
+export const BULLET_SPEED_SCALE = 0.8;
 
 // 難易度係数（弾数・弾速・発射間隔に掛ける）
 export const DIFFICULTY = {

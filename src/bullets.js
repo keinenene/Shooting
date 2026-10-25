@@ -127,7 +127,7 @@ export class Bullets {
   update(world) {
     const p = world.player;
     const px = p.x, py = p.y;
-    const hitR = PLAYER.hitRadius, grazeR = PLAYER.grazeRadius;
+    const hitR = p.hitRadius, grazeR = PLAYER.grazeRadius;
     const m = BULLETS.offscreenMargin;
     const { x, y, spd, ang, vx, vy, acc, crv, minS, maxS, rad, age, life, flg, evl, evn } = this;
 

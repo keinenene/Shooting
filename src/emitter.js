@@ -1,6 +1,6 @@
 // パターン定義（patterns/ のデータ）を解釈して弾を撃つ。
 // 角度は定義では「度」、内部では「ラジアン」。0度が右、90度が真下。
-import { DIFFICULTY } from './config.js';
+import { DIFFICULTY, BULLET_SPEED_SCALE } from './config.js';
 import { BULLET_TYPES, getSprite } from './sprites.js';
 import { eventLists, F_KEEP } from './bullets.js';
 
@@ -57,7 +57,8 @@ function compileEvents(b, mul) {
 
 function compileEmitter(src, diffKey) {
   const e = { ...src, ...(src.override?.[diffKey] || {}) };
-  const mul = DIFFICULTY[diffKey];
+  const d = DIFFICULTY[diffKey];
+  const mul = { ...d, speed: d.speed * BULLET_SPEED_SCALE };
   const ba = e.baseAngle || { type: 'fixed', start: 90 };
   return {
     delay: e.delay ?? 0,

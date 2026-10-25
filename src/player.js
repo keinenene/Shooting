@@ -1,11 +1,17 @@
 // 自機
 import { W, H, PLAYER, INPUT } from './config.js';
+import { SHIPS, DEFAULT_SHIP } from './ships.js';
 
 export class Player {
   constructor() {
+    this.ship = SHIPS[DEFAULT_SHIP];
     this.bufX = 0;  // まだ反映していないドラッグ量
     this.bufY = 0;
     this.reset();
+  }
+
+  get hitRadius() {
+    return this.ship.hitRadius;
   }
 
   reset() {
@@ -20,7 +26,7 @@ export class Player {
   update(drag, slow) {
     this.slow = slow;
     // 低速時は指の移動量を速度比で縮めて、精密に動かせるようにする
-    const ratio = slow ? PLAYER.slowSpeed / PLAYER.speed : 1;
+    const ratio = slow ? this.ship.slowSpeed / this.ship.speed : 1;
     const k = INPUT.sensitivity * ratio;
     const lim = PLAYER.dragBuffer;
     this.bufX = Math.max(-lim, Math.min(lim, this.bufX + drag.x * k));
@@ -104,11 +110,11 @@ export class Player {
     if (this.slow || always) {
       ctx.fillStyle = 'rgba(255, 60, 90, 0.9)';
       ctx.beginPath();
-      ctx.arc(x, y, PLAYER.hitRadius + 2, 0, Math.PI * 2);
+      ctx.arc(x, y, this.hitRadius + 2, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#fff';
       ctx.beginPath();
-      ctx.arc(x, y, PLAYER.hitRadius, 0, Math.PI * 2);
+      ctx.arc(x, y, this.hitRadius, 0, Math.PI * 2);
       ctx.fill();
     }
   }

@@ -240,9 +240,9 @@ export class Boss {
         return;
       }
     }
-    // 通常の移動：目標へなめらかに寄せる
-    this.x += (tx - this.x) * 0.06;
-    this.y += (ty - this.y) * 0.06;
+    // 通常の移動：目標へなめらかに寄せる（係数が小さいほどゆっくり）
+    this.x += (tx - this.x) * BOSS.follow;
+    this.y += (ty - this.y) * BOSS.follow;
   }
 
   draw(ctx) {

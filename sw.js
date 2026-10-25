@@ -1,7 +1,7 @@
 // Service Worker：ゲームのファイルを端末に保存し、オフラインでも起動できるようにする。
 // 保存済みのファイルをすぐ返しつつ、裏で最新版を取り直す（次に開いたときに反映される）
 
-const CACHE = 'starfall-v1';
+const CACHE = 'starfall-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -28,6 +28,7 @@ const ASSETS = [
   './src/scenes/menus.js',
   './src/scenes/test.js',
   './src/settings.js',
+  './src/ships.js',
   './src/shots.js',
   './src/sprites.js',
   './src/stages/stage1.js',

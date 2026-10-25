@@ -88,7 +88,7 @@ const ROAD2 = [
 // 中ボス：1フェーズ。時間切れなら撃破されずに去る
 export const MIDBOSS1 = {
   name: '哨戒機 ストライダー',
-  phaseHp: 4000,
+  phaseHp: 9000,
   retreat: true,               // 時間切れで画面上へ去る
   drops: ['bomb', 'powL', 'powL'],
   phases: [
@@ -96,7 +96,7 @@ export const MIDBOSS1 = {
       name: '迎撃「クロスファイア」',
       time: 30,
       color: '#fd4',
-      move: { type: 'sway', x: 180, y: 110, amp: 100, period: 200 },
+      move: { type: 'sway', x: 180, y: 110, amp: 50, period: 320 },
       patterns: [
         {
           id: 'm1_cross', emitters: [
@@ -125,13 +125,13 @@ export const MIDBOSS1 = {
 
 export const BOSS1 = {
   name: '監視衛星 オクルス',
-  phaseHp: 10000,            // 1フェーズで削れる量（体力の合計はこれ×フェーズ数）
+  phaseHp: 18000,            // 1フェーズで削れる量（体力の合計はこれ×フェーズ数）
   phases: [
     {
       name: '軌道封鎖「リングバリア」',
       time: 40,
       color: '#4df',
-      move: { type: 'sway', x: 180, y: 120, amp: 90, period: 300 },
+      move: { type: 'sway', x: 180, y: 120, amp: 45, period: 420 },
       patterns: [
         {
           id: 'p1_ring', emitters: [{
@@ -161,7 +161,7 @@ export const BOSS1 = {
       name: '流星群「ミーティアシャワー」',
       time: 45,
       color: '#fa4',
-      move: { type: 'wander', points: [[180, 110], [90, 140], [270, 140], [180, 90]], wait: 150 },
+      move: { type: 'wander', points: [[180, 110], [135, 125], [225, 125], [180, 100]], wait: 240 },
       patterns: [
         {
           // 画面上端から降る流星

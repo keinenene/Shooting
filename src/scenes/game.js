@@ -169,8 +169,9 @@ export class GameScene {
     this.maxBombs = st.bombs;
     this.lives = st.lives;
     this.bombs = st.bombs;
-    // 攻撃力の段階（0〜POWER.maxLevel）。練習モードでは2つ目の区間以降を最大から始める
-    this.power = prac && prac.segIdx > 0 ? POWER.maxLevel : 0;
+    // 攻撃力の段階（0〜機体の maxLevel）。練習モードでは2つ目の区間以降を最大から始める
+    this.ship = player.ship;
+    this.power = prac && prac.segIdx > 0 ? this.ship.power.maxLevel : 0;
     this.practiceEndT = 0;
     this.shake = 0;
     this.score = 0;
@@ -388,7 +389,7 @@ export class GameScene {
     tg.length = 0;
     for (const e of this.enemies.list) if (e.alive) tg.push(e);
     if (this.boss) tg.push(this.bossTarget);
-    shots.update(player, alive, tg, 1 + this.power * POWER.step);
+    shots.update(player, alive, tg, this.powerRate());
 
     this.enemies.update(bullets, player);
     if (this.boss) this.updateBoss();
@@ -424,13 +425,18 @@ export class GameScene {
     // 突進中のボス本体との接触
     const b = this.boss;
     if (b && b.bodyActive && canHit()) {
-      const r = PLAYER.hitRadius + b.bodyRadius;
+      const r = player.hitRadius + b.bodyRadius;
       if ((b.x - player.x) ** 2 + (b.y - player.y) ** 2 < r * r) this.onHit();
     }
 
     // アイテム：回収ラインより上にいれば全部吸い寄せる
     this.items.update(player, alive, player.y < ITEMS.collectLine, player.slow,
       (type, x, y) => this.onItem(type, x, y));
+  }
+
+  // 攻撃力の倍率（機体ごとに伸び方が違う）
+  powerRate() {
+    return 1 + this.power * this.ship.power.step;
   }
 
   updateBoss() {
@@ -504,9 +510,10 @@ export class GameScene {
       case IT_POW_L: {
         const add = type === IT_POW_S ? 1 : 5;
         const before = this.power;
-        this.power = Math.min(POWER.maxLevel, this.power + add);
+        const max = this.ship.power.maxLevel;
+        this.power = Math.min(max, this.power + add);
         if (this.power === before) this.score += SCORE.powerOverflow;
-        if (this.power === POWER.maxLevel && before < POWER.maxLevel) this.popup('POWER MAX', x, y - 10, '#f9b');
+        if (this.power === max && before < max) this.popup('POWER MAX', x, y - 10, '#f9b');
         sound.play('power');
         break;
       }
@@ -787,8 +794,8 @@ export class GameScene {
     }
     const px = bx0 + this.maxBombs * 13 + 4;
     ctx.textAlign = 'left';
-    ctx.fillStyle = this.power >= POWER.maxLevel ? '#f9b' : COLORS.ui;
-    ctx.fillText(`P ${(1 + this.power * POWER.step).toFixed(2)}`, px, y1);
+    ctx.fillStyle = this.power >= this.ship.power.maxLevel ? '#f9b' : COLORS.ui;
+    ctx.fillText(`P ${this.powerRate().toFixed(2)}`, px, y1);
     ctx.fillStyle = COLORS.uiDim;
     ctx.textAlign = 'right';
     ctx.fillText('GRAZE ' + this.graze, W - 44, y1);
