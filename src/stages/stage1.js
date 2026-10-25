@@ -3,42 +3,55 @@
 
 // 道中の敵が使う弾パターン（タイムラインから名前で指定する）
 const ENEMY_PATTERNS = {
+  // 小型機：自機狙いの3方向
   aim1: { emitters: [{
-    delay: 40, interval: 90, count: 1, aim: true,
+    delay: 25, interval: 60, count: 3, spread: 20, aim: true,
     bullet: { type: 'small', color: '#f8c', speed: 2.6 },
   }] },
+  // 戦闘機：自機狙いの5方向を2段
   aim3: { emitters: [{
-    delay: 30, interval: 60, count: 3, spread: 24, aim: true,
-    bullet: { type: 'rice', color: '#fc8', speed: 3.0 },
+    delay: 25, interval: 45, count: 5, spread: 40, aim: true, layers: 2, layerStep: 0.5,
+    bullet: { type: 'rice', color: '#fc8', speed: 2.8 },
   }] },
+  // 戦闘機：自機狙いの扇（7方向×3段）
   fan5: { emitters: [{
-    delay: 20, interval: 45, count: 5, spread: 60, aim: true, layers: 2, layerStep: 0.5,
-    bullet: { type: 'small', color: '#fa4', speed: 2.3 },
+    delay: 20, interval: 36, count: 7, spread: 70, aim: true, layers: 3, layerStep: 0.5,
+    bullet: { type: 'small', color: '#fa4', speed: 2.2 },
   }] },
+  // 戦闘機：回る円形
   ring8: { emitters: [{
-    delay: 30, interval: 40, count: 8, spread: 360,
+    delay: 30, interval: 32, count: 12, spread: 360,
     baseAngle: { type: 'rotate', start: 0, speed: 11 },
     bullet: { type: 'medium', color: '#fa4', speed: 1.8 },
   }] },
-  spray: { emitters: [{
-    delay: 20, interval: 5, count: 1, spread: 0,
-    baseAngle: { type: 'random', start: 55, range: 70 },
-    bullet: { type: 'small', color: '#fd6', speed: 2.2 },
-  }] },
+  // 戦闘機：下へのばらまき＋ときどき自機狙い
+  spray: { emitters: [
+    {
+      delay: 20, interval: 4, count: 1, spread: 0,
+      baseAngle: { type: 'random', start: 50, range: 80 },
+      bullet: { type: 'small', color: '#fd6', speed: 2.2 },
+    },
+    {
+      delay: 40, interval: 40, count: 3, spread: 16, aim: true,
+      bullet: { type: 'rice', color: '#fa6', speed: 3.0 },
+    },
+  ] },
+  // 中型機：回る円形＋自機狙いの多段
   carrier: { emitters: [
     {
-      delay: 40, interval: 36, count: 18, spread: 360, radius: 16,
+      delay: 40, interval: 30, count: 24, spread: 360, radius: 16,
       baseAngle: { type: 'rotate', start: 0, speed: 6 },
       bullet: { type: 'medium', color: '#6f8', speed: 1.7 },
     },
     {
-      delay: 70, interval: 60, count: 5, spread: 40, aim: true, layers: 2, layerStep: 0.6,
+      delay: 70, interval: 40, count: 5, spread: 40, aim: true, layers: 3, layerStep: 0.5,
       bullet: { type: 'rice', color: '#bfa', speed: 2.6 },
     },
   ] },
+  // 中型機：4方向の螺旋
   carrier2: { emitters: [
     {
-      delay: 40, interval: 6, count: 4, spread: 360, radius: 16,
+      delay: 40, interval: 5, count: 5, spread: 360, radius: 16,
       baseAngle: { type: 'rotate', start: 0, speed: 8 },
       bullet: { type: 'rice', color: '#6f8', speed: 2.0 },
     },
@@ -58,6 +71,8 @@ const ROAD1 = [
   { at: 1080, type: 'drone', x: -10, y: 80, count: 6, gap: 12, path: { type: 'arc', speed: 2.6, angle: 10, turn: 1.2, turnFrames: 90 }, pattern: 'aim1' },
   { at: 1260, type: 'drone', x: 370, y: 80, count: 6, gap: 12, path: { type: 'arc', speed: 2.6, angle: 170, turn: -1.2, turnFrames: 90 }, pattern: 'aim1' },
   { at: 1550, type: 'fighter', x: 60, dx: 80, count: 4, gap: 15, path: { type: 'stop', toY: 100, wait: 180, exitVy: -2 }, pattern: 'aim3' },
+  { at: 1700, type: 'drone', x: 60, count: 6, gap: 12, path: { type: 'sine', vy: 2, amp: 40, period: 120 }, pattern: 'aim1' },
+  { at: 1700, type: 'drone', x: 300, count: 6, gap: 12, path: { type: 'sine', vy: 2, amp: -40, period: 120 }, pattern: 'aim1' },
   { at: 1850, type: 'drone', x: 40, dx: 70, count: 5, path: { type: 'linear', vy: 3 }, pattern: 'aim1' },
   { at: 1900, type: 'drone', x: 75, dx: 70, count: 5, path: { type: 'linear', vy: 3 }, pattern: 'aim1' },
   { at: 2050, type: 'fighter', x: 120, dx: 120, count: 2, path: { type: 'stop', toY: 90, wait: 200, exitVy: -2 }, pattern: 'spray' },
@@ -81,6 +96,7 @@ const ROAD2 = [
   { at: 1400, type: 'drone', x: 300, count: 10, gap: 12, path: { type: 'sine', vy: 1.8, amp: -40, period: 120 }, pattern: 'aim1' },
   { at: 1800, type: 'fighter', x: -10, y: 120, count: 3, gap: 25, path: { type: 'arc', speed: 2.2, angle: 0, turn: 0.5, turnFrames: 140 }, pattern: 'fan5' },
   { at: 1800, type: 'fighter', x: 370, y: 120, count: 3, gap: 25, path: { type: 'arc', speed: 2.2, angle: 180, turn: -0.5, turnFrames: 140 }, pattern: 'fan5' },
+  { at: 1600, type: 'fighter', x: 90, dx: 180, count: 2, path: { type: 'stop', toY: 80, wait: 240, exitVy: -2 }, pattern: 'ring8' },
   { at: 2100, type: 'drone', x: 20, dx: 32, count: 11, gap: 6, path: { type: 'linear', vy: 3.2 }, pattern: 'aim1' },
   { at: 2300, type: 'fighter', x: 60, dx: 80, count: 4, gap: 10, path: { type: 'stop', toY: 120, wait: 200, exitVy: -2 }, pattern: 'ring8' },
 ];
